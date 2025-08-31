@@ -166,6 +166,9 @@
                 <button onclick="openSmartReschedulingModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
                     🤖 Reagendamento Inteligente
                 </button>
+                <button onclick="openUserManagementModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
+                    👥 Gerenciar Usuários
+                </button>
                 <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
                     🗑️ Limpar Tudo
                 </button>
@@ -742,6 +745,173 @@
         </div>
     </div>
 
+    <!-- User Management Modal -->
+    <div id="userManagementModal" class="modal">
+        <div class="bg-white rounded-lg p-6 w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold mb-6 text-center text-indigo-800">👥 Gerenciamento de Usuários</h3>
+            
+            <!-- Create New User Section -->
+            <div class="mb-8 bg-green-50 p-6 rounded-lg">
+                <h4 class="text-lg font-bold mb-4 text-green-800">➕ Criar Novo Usuário</h4>
+                <form onsubmit="createNewUser(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">👤 Nome Completo:</label>
+                        <input type="text" id="newUserName" required 
+                               class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+                               placeholder="Ex: Dr. João Silva">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">🔑 Nome de Usuário:</label>
+                        <input type="text" id="newUsername" required 
+                               class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+                               placeholder="Ex: joao.silva" pattern="[a-zA-Z0-9._-]+" 
+                               title="Apenas letras, números, pontos, hífens e underscores">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">🔒 Senha:</label>
+                        <input type="password" id="newUserPassword" required minlength="6"
+                               class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+                               placeholder="Mínimo 6 caracteres">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">🏆 Nível de Acesso:</label>
+                        <select id="newUserLevel" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            <option value="">Selecione o nível...</option>
+                            <option value="admin">👑 Administrador (Acesso Total)</option>
+                            <option value="editor">✏️ Editor (Criar e Editar)</option>
+                            <option value="viewer">👁️ Visualizador (Apenas Ver)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium mb-2">📝 Observações (Opcional):</label>
+                        <input type="text" id="newUserNotes" 
+                               class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+                               placeholder="Ex: Terapeuta ABA, Supervisor de Equipe, etc.">
+                    </div>
+                    
+                    <div class="md:col-span-2 flex gap-3">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex-1">
+                            ➕ Criar Usuário
+                        </button>
+                        <button type="button" onclick="clearNewUserForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-3 rounded-lg font-medium">
+                            🧹 Limpar
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Users List Section -->
+            <div class="mb-6">
+                <h4 class="text-lg font-bold mb-4 text-indigo-800">📋 Usuários Cadastrados</h4>
+                
+                <!-- Search and Filter -->
+                <div class="mb-4 bg-gray-50 p-4 rounded-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">🔍 Pesquisar:</label>
+                            <input type="text" id="userSearchInput" onkeyup="filterUsers()" 
+                                   class="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="Nome ou usuário...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">🏆 Filtrar por Nível:</label>
+                            <select id="userLevelFilter" onchange="filterUsers()" class="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Todos os níveis</option>
+                                <option value="admin">👑 Administradores</option>
+                                <option value="editor">✏️ Editores</option>
+                                <option value="viewer">👁️ Visualizadores</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="clearUserFilters()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">
+                                🧹 Limpar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Users Table -->
+                <div id="usersTableContainer" class="overflow-x-auto">
+                    <!-- Users will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="mb-6 bg-blue-50 p-4 rounded-lg">
+                <h5 class="font-bold text-blue-800 mb-3">📊 Estatísticas de Usuários</h5>
+                <div id="userStats" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <!-- Stats will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Close Button -->
+            <div class="flex justify-center">
+                <button onclick="closeModal('userManagementModal')" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold mb-4 text-blue-800">✏️ Editar Usuário</h3>
+            <form onsubmit="saveUserEdit(event)">
+                <input type="hidden" id="editUserId">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">👤 Nome Completo:</label>
+                    <input type="text" id="editUserName" required 
+                           class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">🔑 Nome de Usuário:</label>
+                    <input type="text" id="editUsername" required 
+                           class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                           pattern="[a-zA-Z0-9._-]+" readonly>
+                    <div class="text-xs text-gray-500 mt-1">⚠️ Nome de usuário não pode ser alterado</div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">🔒 Nova Senha (deixe vazio para manter):</label>
+                    <input type="password" id="editUserPassword" minlength="6"
+                           class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                           placeholder="Digite nova senha ou deixe vazio">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">🏆 Nível de Acesso:</label>
+                    <select id="editUserLevel" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="admin">👑 Administrador (Acesso Total)</option>
+                        <option value="editor">✏️ Editor (Criar e Editar)</option>
+                        <option value="viewer">👁️ Visualizador (Apenas Ver)</option>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">📝 Observações:</label>
+                    <input type="text" id="editUserNotes" 
+                           class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-1">
+                        💾 Salvar Alterações
+                    </button>
+                    <button type="button" onclick="closeModal('editUserModal')" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Login Modal -->
     <div id="loginModal" class="modal active">
         <div class="bg-white rounded-lg p-8 w-full max-w-md mx-4">
@@ -803,23 +973,20 @@
         let currentUser = null;
         let userPermissions = null;
 
-        // User database with different access levels
-        const users = {
-            // Administrators - Full access including deletions
-            'admin': { password: 'admin123', level: 'admin', name: 'Administrador' },
-            'diretor': { password: 'diretor2024', level: 'admin', name: 'Diretor' },
-            'coordenador': { password: 'coord2024', level: 'admin', name: 'Coordenador' },
-            
-            // Editors - Can create and edit, but not delete
-            'secretaria': { password: 'sec2024', level: 'editor', name: 'Secretária' },
-            'recepcionista': { password: 'recep2024', level: 'editor', name: 'Recepcionista' },
-            'supervisor': { password: 'super2024', level: 'editor', name: 'Supervisor' },
-            
-            // Viewers - Read-only access
-            'terapeuta': { password: 'tera2024', level: 'viewer', name: 'Terapeuta' },
-            'estagiario': { password: 'estag2024', level: 'viewer', name: 'Estagiário' },
-            'consultor': { password: 'cons2024', level: 'viewer', name: 'Consultor' }
+        // Default admin user (cannot be deleted)
+        const defaultUsers = {
+            'admin': { 
+                password: 'admin123', 
+                level: 'admin', 
+                name: 'Administrador Principal',
+                isDefault: true,
+                createdBy: 'system',
+                createdAt: new Date().toISOString()
+            }
         };
+
+        // Load users from localStorage or use defaults
+        let users = JSON.parse(localStorage.getItem('systemUsers') || JSON.stringify(defaultUsers));
 
         // Permission definitions
         const permissions = {
@@ -887,6 +1054,22 @@
             const password = document.getElementById('loginPassword').value;
             
             if (users[username] && users[username].password === password) {
+                // Check if user is active
+                if (users[username].isActive === false) {
+                    document.getElementById('loginError').innerHTML = '❌ Usuário inativo! Contate um administrador.';
+                    document.getElementById('loginError').classList.remove('hidden');
+                    document.getElementById('loginPassword').value = '';
+                    
+                    setTimeout(() => {
+                        document.getElementById('loginError').classList.add('hidden');
+                    }, 5000);
+                    return;
+                }
+                
+                // Update last login
+                users[username].lastLogin = new Date().toISOString();
+                saveUsers();
+                
                 // Successful login
                 currentUser = {
                     username: username,
@@ -909,6 +1092,7 @@
                 
             } else {
                 // Failed login
+                document.getElementById('loginError').innerHTML = '❌ Usuário ou senha incorretos!';
                 document.getElementById('loginError').classList.remove('hidden');
                 document.getElementById('loginPassword').value = '';
                 
@@ -938,22 +1122,76 @@
 
         function logout() {
             if (confirm('🚪 Deseja realmente sair do sistema?')) {
+                // Clear user session
                 localStorage.removeItem('currentUser');
                 currentUser = null;
                 userPermissions = null;
                 
-                // Clear sensitive data
+                // Clear all sensitive data from UI
                 document.getElementById('scheduleGrid').innerHTML = '';
                 document.getElementById('weeklyScheduleGrid').innerHTML = '';
                 document.getElementById('professionalsList').innerHTML = '';
+                document.getElementById('reportsContent').innerHTML = '';
+                
+                // Clear all form inputs
+                const allInputs = document.querySelectorAll('input, select, textarea');
+                allInputs.forEach(input => {
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        input.checked = false;
+                    } else {
+                        input.value = '';
+                    }
+                });
+                
+                // Close all modals except login
+                const allModals = document.querySelectorAll('.modal');
+                allModals.forEach(modal => {
+                    if (modal.id !== 'loginModal') {
+                        modal.classList.remove('active');
+                    }
+                });
+                
+                // Clear filters and searches
+                document.getElementById('professionalFilter').innerHTML = '<option value="">Todos os Profissionais</option>';
+                document.getElementById('weeklyProfessionalFilter').innerHTML = '<option value="">Todos os Profissionais</option>';
+                document.getElementById('appointmentProfessional').innerHTML = '<option value="">Selecione o profissional...</option>';
+                document.getElementById('mainProfessionalSearch').value = '';
+                document.getElementById('professionalSearch').value = '';
+                
+                // Hide user info and reset to default view
+                const userInfo = document.querySelector('.user-info');
+                if (userInfo) {
+                    userInfo.remove();
+                }
+                
+                // Reset view to schedule
+                hideAllViews();
+                document.getElementById('scheduleView').style.display = 'block';
+                currentView = 'schedule';
                 
                 // Show login modal
                 document.getElementById('loginModal').classList.add('active');
                 
-                // Reset form
+                // Reset login form
                 document.getElementById('loginUsername').value = '';
                 document.getElementById('loginPassword').value = '';
                 document.getElementById('loginError').classList.add('hidden');
+                
+                // Focus on username field
+                document.getElementById('loginUsername').focus();
+                
+                // Show logout success message
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                notification.innerHTML = '🚪 Logout realizado com sucesso!';
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
             }
         }
 
@@ -1041,6 +1279,10 @@
                 if (buttonText.includes('profissionais') && !userPermissions.canView) {
                     button.style.display = 'none';
                 }
+                
+                if (buttonText.includes('gerenciar usuários') && currentUser.level !== 'admin') {
+                    button.style.display = 'none';
+                }
             });
             
             // Always hide reset button initially - only admins can see it through sequence
@@ -1051,6 +1293,374 @@
             
             // Update professional cards based on permissions
             updateProfessionalCardsPermissions();
+        }
+
+        // User Management Functions
+        function openUserManagementModal() {
+            if (currentUser.level !== 'admin') {
+                alert('🚫 ACESSO NEGADO\n\nApenas administradores podem gerenciar usuários.');
+                return;
+            }
+            
+            loadUsersTable();
+            updateUserStats();
+            document.getElementById('userManagementModal').classList.add('active');
+        }
+
+        function createNewUser(event) {
+            event.preventDefault();
+            
+            if (currentUser.level !== 'admin') {
+                alert('🚫 ACESSO NEGADO\n\nApenas administradores podem criar usuários.');
+                return;
+            }
+            
+            const username = document.getElementById('newUsername').value.toLowerCase().trim();
+            const name = document.getElementById('newUserName').value.trim();
+            const password = document.getElementById('newUserPassword').value;
+            const level = document.getElementById('newUserLevel').value;
+            const notes = document.getElementById('newUserNotes').value.trim();
+            
+            // Validate username format
+            if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+                alert('❌ Nome de usuário inválido!\n\nUse apenas letras, números, pontos, hífens e underscores.');
+                return;
+            }
+            
+            // Check if username already exists
+            if (users[username]) {
+                alert('❌ Nome de usuário já existe!\n\nEscolha um nome diferente.');
+                return;
+            }
+            
+            // Create new user
+            const newUser = {
+                password: password,
+                level: level,
+                name: name,
+                notes: notes || '',
+                isDefault: false,
+                createdBy: currentUser.username,
+                createdAt: new Date().toISOString(),
+                lastLogin: null,
+                isActive: true
+            };
+            
+            users[username] = newUser;
+            saveUsers();
+            
+            // Clear form
+            clearNewUserForm();
+            
+            // Reload table and stats
+            loadUsersTable();
+            updateUserStats();
+            
+            showSuccessMessage(`✅ Usuário "${name}" criado com sucesso!\nNome de usuário: ${username}\nNível: ${getLevelLabel(level)}`);
+        }
+
+        function clearNewUserForm() {
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newUserPassword').value = '';
+            document.getElementById('newUserLevel').value = '';
+            document.getElementById('newUserNotes').value = '';
+        }
+
+        function loadUsersTable() {
+            const container = document.getElementById('usersTableContainer');
+            const searchTerm = document.getElementById('userSearchInput').value.toLowerCase();
+            const levelFilter = document.getElementById('userLevelFilter').value;
+            
+            // Filter users
+            const filteredUsers = Object.entries(users).filter(([username, user]) => {
+                const matchesSearch = !searchTerm || 
+                    username.toLowerCase().includes(searchTerm) || 
+                    user.name.toLowerCase().includes(searchTerm);
+                const matchesLevel = !levelFilter || user.level === levelFilter;
+                
+                return matchesSearch && matchesLevel;
+            });
+            
+            if (filteredUsers.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-4xl mb-3">👥</div>
+                        <div class="text-lg font-medium">Nenhum usuário encontrado</div>
+                        <div class="text-sm">Ajuste os filtros ou crie um novo usuário</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let tableHtml = `
+                <table class="w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuário</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nível</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Criado</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Último Login</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+            `;
+            
+            filteredUsers.forEach(([username, user]) => {
+                const levelIcon = getLevelIcon(user.level);
+                const levelLabel = getLevelLabel(user.level);
+                const levelColor = getLevelColor(user.level);
+                const isCurrentUser = username === currentUser.username;
+                const canEdit = !user.isDefault || isCurrentUser;
+                const canDelete = !user.isDefault && !isCurrentUser;
+                
+                const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : 'N/A';
+                const lastLoginDate = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('pt-BR') : 'Nunca';
+                
+                tableHtml += `
+                    <tr class="hover:bg-gray-50 ${isCurrentUser ? 'bg-blue-50' : ''}">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-gray-900">${username}</div>
+                            ${user.notes ? `<div class="text-xs text-gray-500">${user.notes}</div>` : ''}
+                            ${isCurrentUser ? '<div class="text-xs text-blue-600 font-medium">👤 Você</div>' : ''}
+                        </td>
+                        <td class="px-4 py-3 text-gray-900">${user.name}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${levelColor}">
+                                ${levelIcon} ${levelLabel}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${user.isActive !== false ? '✅ Ativo' : '❌ Inativo'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            ${createdDate}
+                            ${user.createdBy ? `<div class="text-xs">por ${user.createdBy}</div>` : ''}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${lastLoginDate}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex space-x-2">
+                                ${canEdit ? `
+                                    <button onclick="editUser('${username}')" 
+                                            class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs">
+                                        ✏️ Editar
+                                    </button>
+                                ` : ''}
+                                ${canDelete ? `
+                                    <button onclick="toggleUserStatus('${username}')" 
+                                            class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs">
+                                        ${user.isActive !== false ? '⏸️ Inativar' : '▶️ Ativar'}
+                                    </button>
+                                    <button onclick="deleteUser('${username}')" 
+                                            class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs">
+                                        🗑️ Excluir
+                                    </button>
+                                ` : ''}
+                                ${user.isDefault ? `
+                                    <span class="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded">
+                                        🔒 Sistema
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableHtml += '</tbody></table>';
+            container.innerHTML = tableHtml;
+        }
+
+        function updateUserStats() {
+            const container = document.getElementById('userStats');
+            
+            const totalUsers = Object.keys(users).length;
+            const adminCount = Object.values(users).filter(u => u.level === 'admin').length;
+            const editorCount = Object.values(users).filter(u => u.level === 'editor').length;
+            const viewerCount = Object.values(users).filter(u => u.level === 'viewer').length;
+            const activeCount = Object.values(users).filter(u => u.isActive !== false).length;
+            
+            container.innerHTML = `
+                <div class="bg-white p-3 rounded border">
+                    <div class="text-2xl font-bold text-blue-600">${totalUsers}</div>
+                    <div class="text-sm text-gray-600">Total de Usuários</div>
+                </div>
+                <div class="bg-white p-3 rounded border">
+                    <div class="text-2xl font-bold text-red-600">${adminCount}</div>
+                    <div class="text-sm text-gray-600">👑 Administradores</div>
+                </div>
+                <div class="bg-white p-3 rounded border">
+                    <div class="text-2xl font-bold text-blue-600">${editorCount}</div>
+                    <div class="text-sm text-gray-600">✏️ Editores</div>
+                </div>
+                <div class="bg-white p-3 rounded border">
+                    <div class="text-2xl font-bold text-green-600">${viewerCount}</div>
+                    <div class="text-sm text-gray-600">👁️ Visualizadores</div>
+                </div>
+            `;
+        }
+
+        function filterUsers() {
+            loadUsersTable();
+        }
+
+        function clearUserFilters() {
+            document.getElementById('userSearchInput').value = '';
+            document.getElementById('userLevelFilter').value = '';
+            loadUsersTable();
+        }
+
+        function editUser(username) {
+            const user = users[username];
+            if (!user) return;
+            
+            document.getElementById('editUserId').value = username;
+            document.getElementById('editUserName').value = user.name;
+            document.getElementById('editUsername').value = username;
+            document.getElementById('editUserPassword').value = '';
+            document.getElementById('editUserLevel').value = user.level;
+            document.getElementById('editUserNotes').value = user.notes || '';
+            
+            document.getElementById('editUserModal').classList.add('active');
+        }
+
+        function saveUserEdit(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('editUserId').value;
+            const name = document.getElementById('editUserName').value.trim();
+            const newPassword = document.getElementById('editUserPassword').value;
+            const level = document.getElementById('editUserLevel').value;
+            const notes = document.getElementById('editUserNotes').value.trim();
+            
+            if (!users[username]) {
+                alert('❌ Usuário não encontrado!');
+                return;
+            }
+            
+            // Update user data
+            users[username].name = name;
+            users[username].level = level;
+            users[username].notes = notes;
+            
+            // Update password if provided
+            if (newPassword) {
+                users[username].password = newPassword;
+            }
+            
+            // Update modification info
+            users[username].lastModifiedBy = currentUser.username;
+            users[username].lastModifiedAt = new Date().toISOString();
+            
+            saveUsers();
+            
+            // If editing current user, update current session
+            if (username === currentUser.username) {
+                currentUser.name = name;
+                currentUser.level = level;
+                userPermissions = permissions[level];
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateHeaderWithUserInfo();
+                updateUIBasedOnPermissions();
+            }
+            
+            closeModal('editUserModal');
+            loadUsersTable();
+            updateUserStats();
+            
+            showSuccessMessage(`✅ Usuário "${name}" atualizado com sucesso!`);
+        }
+
+        function toggleUserStatus(username) {
+            const user = users[username];
+            if (!user || user.isDefault) {
+                alert('❌ Não é possível alterar o status deste usuário!');
+                return;
+            }
+            
+            const newStatus = user.isActive === false;
+            const action = newStatus ? 'ativar' : 'inativar';
+            
+            if (confirm(`🔄 Deseja ${action} o usuário "${user.name}"?\n\n${newStatus ? 'O usuário poderá fazer login novamente.' : 'O usuário não poderá mais fazer login.'}`)) {
+                users[username].isActive = newStatus;
+                users[username].lastModifiedBy = currentUser.username;
+                users[username].lastModifiedAt = new Date().toISOString();
+                
+                saveUsers();
+                loadUsersTable();
+                updateUserStats();
+                
+                const actionPast = newStatus ? 'ativado' : 'inativado';
+                showSuccessMessage(`✅ Usuário "${user.name}" foi ${actionPast} com sucesso!`);
+            }
+        }
+
+        function deleteUser(username) {
+            const user = users[username];
+            if (!user) return;
+            
+            if (user.isDefault) {
+                alert('❌ Não é possível excluir usuários do sistema!');
+                return;
+            }
+            
+            if (username === currentUser.username) {
+                alert('❌ Você não pode excluir sua própria conta!');
+                return;
+            }
+            
+            const confirmMessage = `🗑️ CONFIRMAR EXCLUSÃO DE USUÁRIO\n\n` +
+                `Nome: ${user.name}\n` +
+                `Usuário: ${username}\n` +
+                `Nível: ${getLevelLabel(user.level)}\n` +
+                `Criado em: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : 'N/A'}\n\n` +
+                `⚠️ Esta ação não pode ser desfeita!\n\n` +
+                `Deseja realmente excluir este usuário?`;
+            
+            if (confirm(confirmMessage)) {
+                delete users[username];
+                saveUsers();
+                loadUsersTable();
+                updateUserStats();
+                
+                showSuccessMessage(`🗑️ Usuário "${user.name}" foi excluído permanentemente!`);
+            }
+        }
+
+        function saveUsers() {
+            localStorage.setItem('systemUsers', JSON.stringify(users));
+        }
+
+        function getLevelIcon(level) {
+            const icons = {
+                admin: '👑',
+                editor: '✏️',
+                viewer: '👁️'
+            };
+            return icons[level] || '❓';
+        }
+
+        function getLevelLabel(level) {
+            const labels = {
+                admin: 'Administrador',
+                editor: 'Editor',
+                viewer: 'Visualizador'
+            };
+            return labels[level] || 'Desconhecido';
+        }
+
+        function getLevelColor(level) {
+            const colors = {
+                admin: 'bg-red-100 text-red-800',
+                editor: 'bg-blue-100 text-blue-800',
+                viewer: 'bg-green-100 text-green-800'
+            };
+            return colors[level] || 'bg-gray-100 text-gray-800';
         }
 
         function updateProfessionalCardsPermissions() {
@@ -4401,5 +5011,5 @@
             }
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97792003b260e83a',t:'MTc1NjYwNzYyNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97793d86d71df1e5',t:'MTc1NjYwODgzNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
