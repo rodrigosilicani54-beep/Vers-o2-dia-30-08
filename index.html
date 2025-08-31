@@ -163,7 +163,7 @@
                 <button onclick="showWeeklyView()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
                     📅 Semanal
                 </button>
-                <button onclick="openBulkEditModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
+                <button onclick="openSmartReschedulingModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
                     🤖 Reagendamento Inteligente
                 </button>
                 <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
@@ -498,7 +498,7 @@
     </div>
 
     <!-- Time Slot Options Modal -->
-    <div id="timeSlotOptionsModal" class="modal">
+    <div id="timeSlotOptionsModal" class="modal" style="z-index: 1100;">
         <div class="bg-white rounded-lg p-6 w-full max-w-5xl mx-4 max-h-[90vh] overflow-y-auto">
             <h3 class="text-2xl font-bold mb-6 text-center text-blue-800">🕐 Opções de Substituição por Horário</h3>
             
@@ -524,7 +524,7 @@
     </div>
 
     <!-- Absence Options Modal -->
-    <div id="absenceOptionsModal" class="modal">
+    <div id="absenceOptionsModal" class="modal" style="z-index: 1100;">
         <div class="bg-white rounded-lg p-6 w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto">
             <h3 class="text-2xl font-bold mb-6 text-center text-red-800">🚨 Opções de Substituição por Falta</h3>
             
@@ -558,8 +558,8 @@
         </div>
     </div>
 
-    <!-- Bulk Edit Modal -->
-    <div id="bulkEditModal" class="modal">
+    <!-- Smart Rescheduling Modal -->
+    <div id="smartReschedulingModal" class="modal">
         <div class="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
             <h3 class="text-2xl font-bold mb-6 text-center text-amber-800">🤖 Reagendamento Inteligente</h3>
             
@@ -670,7 +670,7 @@
             
             <!-- Close Button -->
             <div class="flex justify-center">
-                <button onclick="closeModal('bulkEditModal')" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium">
+                <button onclick="closeModal('smartReschedulingModal')" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium">
                     Fechar
                 </button>
             </div>
@@ -2622,39 +2622,25 @@
         let filteredBulkAppointments = [];
         let selectedBulkAppointments = [];
 
-        function openBulkEditModal() {
+        function openSmartReschedulingModal() {
             if (!checkPermission('bulkEdit')) {
                 showPermissionDenied('bulkEdit');
                 return;
             }
             
             // Populate professional filters
-            const bulkFilterProfessional = document.getElementById('bulkFilterProfessional');
-            const bulkChangeProfessional = document.getElementById('bulkChangeProfessional');
             const leavingProfessional = document.getElementById('leavingProfessional');
             const replacementProfessional = document.getElementById('replacementProfessional');
             const absentProfessional = document.getElementById('absentProfessional');
             
-            bulkFilterProfessional.innerHTML = '<option value="">Todos os Profissionais</option>';
-            bulkChangeProfessional.innerHTML = '<option value="">Selecione um profissional...</option>';
             leavingProfessional.innerHTML = '<option value="">Selecione o profissional...</option>';
             replacementProfessional.innerHTML = '<option value="">Selecione o substituto...</option>';
             absentProfessional.innerHTML = '<option value="">Selecione o profissional...</option>';
             
-            // Only show active professionals in bulk edit
+            // Only show active professionals in smart rescheduling
             const activeProfessionals = professionals.filter(prof => prof.active !== false);
             
             activeProfessionals.forEach(prof => {
-                const option1 = document.createElement('option');
-                option1.value = prof.id;
-                option1.textContent = prof.name;
-                bulkFilterProfessional.appendChild(option1);
-                
-                const option2 = document.createElement('option');
-                option2.value = prof.id;
-                option2.textContent = prof.name;
-                bulkChangeProfessional.appendChild(option2);
-                
                 const option3 = document.createElement('option');
                 option3.value = prof.id;
                 option3.textContent = `${prof.name} (${prof.specialty})`;
@@ -2671,11 +2657,7 @@
                 absentProfessional.appendChild(option5);
             });
             
-            // Clear filters and load all appointments
-            clearBulkFilters();
-            filterBulkAppointments();
-            
-            document.getElementById('bulkEditModal').classList.add('active');
+            document.getElementById('smartReschedulingModal').classList.add('active');
         }
 
         // Smart Professional Replacement Functions
@@ -3632,12 +3614,13 @@
 
             const confirmMessage = `🚨 SUBSTITUIÇÃO DE EMERGÊNCIA\n\n` +
                 `Profissional ausente: ${currentAbsenceAnalysis.absentProf.name}\n` +
-                `Data: ${new Date(currentAbsenceAnalysis.absenceDate).toLocaleDateString('pt-BR')}\n\n` +
+                `Dia: ${currentAbsenceAnalysis.selectedDayName}\n\n` +
                 `Serão aplicadas ${autoReplacements.length} substituições automáticas (apenas prioridades altas).\n\n` +
                 `⚠️ Esta ação não pode ser desfeita!\n\nDeseja continuar?`;
 
             if (confirm(confirmMessage)) {
                 let replacedCount = 0;
+                let canceledCount = 0;
                 
                 autoReplacements.forEach(replacement => {
                     // Update the absent professional's appointment
@@ -3645,12 +3628,15 @@
                     if (aptIndex !== -1) {
                         appointments[aptIndex].professionalId = replacement.replacement.professional.id;
                         
-                        // If replacement professional had an appointment, remove it
-                        if (replacement.replacement.currentAppointment) {
-                            const currentIndex = appointments.findIndex(a => a.id === replacement.replacement.currentAppointment.id);
-                            if (currentIndex !== -1) {
-                                appointments.splice(currentIndex, 1);
-                            }
+                        // If replacement professional had appointments, remove them all
+                        if (replacement.replacement.affectedAppointments && replacement.replacement.affectedAppointments.length > 0) {
+                            replacement.replacement.affectedAppointments.forEach(affectedApt => {
+                                const currentIndex = appointments.findIndex(a => a.id === affectedApt.id);
+                                if (currentIndex !== -1) {
+                                    appointments.splice(currentIndex, 1);
+                                    canceledCount++;
+                                }
+                            });
                         }
                         
                         replacedCount++;
@@ -3667,7 +3653,12 @@
                 document.getElementById('absenceDay').value = '';
                 document.getElementById('absenceAnalysis').classList.add('hidden');
                 
-                showSuccessMessage(`🚨 Substituição de emergência concluída! ${replacedCount} agendamentos foram transferidos.`);
+                let message = `🚨 Substituição de emergência concluída! ${replacedCount} agendamentos foram transferidos.`;
+                if (canceledCount > 0) {
+                    message += `\n🗑️ ${canceledCount} agendamentos conflitantes foram cancelados.`;
+                }
+                
+                showSuccessMessage(message);
             }
         }
 
@@ -4410,5 +4401,5 @@
             }
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97790f51175cf1f6',t:'MTc1NjYwNjk0My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97792003b260e83a',t:'MTc1NjYwNzYyNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
